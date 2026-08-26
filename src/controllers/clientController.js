@@ -13,8 +13,16 @@ const iconv = require('iconv-lite');
  */
 function decodeMojibake(str) {
   try {
-    const latin1Buf = iconv.encode(str, 'iso-8859-1');
-    return iconv.decode(latin1Buf, 'cp949');
+    return str
+      .split(/([/\\])/)
+      .map(segment => {
+        if ([...segment].some(char => char.codePointAt(0) > 0xff)) {
+          return segment;
+        }
+        const latin1Buf = iconv.encode(segment, 'iso-8859-1');
+        return iconv.decode(latin1Buf, 'cp949');
+      })
+      .join('');
   } catch (e) {
     return str;
   }

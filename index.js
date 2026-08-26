@@ -22,6 +22,8 @@ const ENABLE_STATIC_SERVE = process.env.ENABLE_STATIC_SERVE === 'true';
 const ESRGAN_ENABLED = process.env.ESRGAN_ENABLED === 'true';
 const ESRGAN_CACHE_DIR = process.env.ESRGAN_CACHE_DIR || './upscaled_cache';
 const ROBROWSER_PATH = process.env.ROBROWSER_PATH || '../roBrowserLegacy';
+const ROBROWSER_PUBLIC_PATH = process.env.ROBROWSER_PUBLIC_PATH || '/';
+const RATHENA_WEB_API_URL = process.env.RATHENA_WEB_API_URL || '';
 const IS_PROD = process.env.NODE_ENV === 'production';
 
 // Global variable to store validation status
@@ -73,6 +75,49 @@ async function startServer() {
   };
 
   app.use(cors(corsOptions));
+
+  if (RATHENA_WEB_API_URL) {
+    const target = new URL(RATHENA_WEB_API_URL);
+    const proxyPrefixes = ['/charconfig', '/emblem', '/MerchantStore', '/party', '/userconfig', '/get'];
+
+    app.use((req, res, next) => {
+      if (!proxyPrefixes.some(prefix => req.path === prefix || req.path.startsWith(`${prefix}/`))) {
+        return next();
+      }
+
+      const headers = {
+        ...req.headers,
+        host: target.host,
+        'x-forwarded-for': req.socket.remoteAddress,
+        'x-forwarded-host': req.headers.host || '',
+        'x-forwarded-proto': req.protocol,
+      };
+      const proxyRequest = http.request({
+        protocol: target.protocol,
+        hostname: target.hostname,
+        port: target.port,
+        method: req.method,
+        path: req.originalUrl,
+        headers,
+      }, (proxyResponse) => {
+        res.status(proxyResponse.statusCode || 502);
+        for (const [name, value] of Object.entries(proxyResponse.headers)) {
+          if (value !== undefined) res.setHeader(name, value);
+        }
+        proxyResponse.pipe(res);
+      });
+
+      proxyRequest.on('error', (error) => {
+        logger.error(`rAthena Web API proxy error: ${error.message}`);
+        if (!res.headersSent) res.status(502).json({ error: 'rAthena Web API unavailable' });
+        else res.end();
+      });
+      req.pipe(proxyRequest);
+    });
+
+    logger.info(`rAthena Web API proxy enabled for ${proxyPrefixes.join(', ')}`);
+  }
+
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
@@ -142,9 +187,9 @@ async function startServer() {
     logger.debug(`Static serve enabled: ${roBrowserAbsPath}`);
 
     // Handle Vite-style ?raw imports (must come before express.static)
-    app.use(createRawImportMiddleware(roBrowserAbsPath));
+    app.use(ROBROWSER_PUBLIC_PATH, createRawImportMiddleware(roBrowserAbsPath));
 
-    app.use(express.static(roBrowserAbsPath));
+    app.use(ROBROWSER_PUBLIC_PATH, express.static(roBrowserAbsPath));
   }
 
   // API routes (GRF file serving, search, etc.)
@@ -167,6 +212,12 @@ async function startServer() {
           '127.0.0.1:6121',  // Char
           '127.0.0.1:5121',  // Map
         ];
+    const TARGET_REDIRECTS = Object.fromEntries(
+      (process.env.WS_TARGET_REDIRECTS || '')
+        .split(',')
+        .map(entry => entry.trim().split('='))
+        .filter(([source, destination]) => source && destination)
+    );
 
     server.on('upgrade', (req, socket, head) => {
       if (req.url.startsWith('/ws/')) {
@@ -203,8 +254,21 @@ async function startServer() {
         return;
       }
 
-      logger.info(`WS proxy: connecting to ${target}`);
-      const tcp = net.connect(targetPort, host);
+      const destination = TARGET_REDIRECTS[target] || target;
+      const destinationColonIdx = destination.lastIndexOf(':');
+      const destinationHost = destinationColonIdx !== -1 ? destination.slice(0, destinationColonIdx) : '';
+      const destinationPort = destinationColonIdx !== -1
+        ? parseInt(destination.slice(destinationColonIdx + 1), 10)
+        : NaN;
+
+      if (!destinationHost || !Number.isInteger(destinationPort) || destinationPort < 1 || destinationPort > 65535) {
+        logger.warn(`WS proxy rejected malformed destination: "${destination}"`);
+        ws.close();
+        return;
+      }
+
+      logger.info(`WS proxy: connecting ${target} -> ${destination}`);
+      const tcp = net.connect(destinationPort, destinationHost);
       tcp.setNoDelay(true);
 
       // Buffer messages received before the TCP connection is established.
@@ -229,7 +293,7 @@ async function startServer() {
 
       tcp.on('connect', () => {
         connected = true;
-        logger.info(`WS proxy: connected  to ${target}`);
+        logger.info(`WS proxy: connected ${target} -> ${destination}`);
         pending.splice(0).forEach(d => tcp.write(d));
       });
 
@@ -258,7 +322,7 @@ async function startServer() {
 
   server.listen(port, async () => {
     logger.info(`Server ready on http://localhost:${port}` +
-      (ENABLE_STATIC_SERVE ? ` | Game: http://localhost:${port}/applications/pwa/index.html` : '') +
+      (ENABLE_STATIC_SERVE ? ` | Game: http://localhost:${port}${ROBROWSER_PUBLIC_PATH}/index.html` : '') +
       (ENABLE_WSPROXY ? ` | WS Proxy: /ws/` : ''));
 
     // Cache warm-up (runs after server is ready, non-blocking)
