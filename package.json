@@ -14,7 +14,10 @@
 		"validate:grf": "node tools/validate-grf.mjs",
 		"validate:all": "node tools/validate-all-grfs.mjs ./resources auto",
 		"validate:encoding": "node tools/validate-grf-iconv.mjs",
+		"extract:grf": "node tools/extract-grf.mjs",
 		"test:mojibake": "node tools/test-mojibake.mjs",
+		"test:runtime-config": "node --test test/runtime-config.test.js",
+		"test:proxy": "node --test test/http-proxy.test.js",
 		"convert:encoding": "node tools/convert-encoding.mjs"
 	},
 	"author": "Vincent Thibault",

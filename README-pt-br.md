@@ -351,6 +351,8 @@ Quando `CLIENT_AUTOEXTRACT=true` (padrao em `src/config/configs.js`), arquivos e
 |----------|--------|-----------|
 | `PORT` | `3338` | Porta do servidor |
 | `CLIENT_PUBLIC_URL` | `http://localhost:8000` | Origem CORS permitida |
+| `REMOTE_CLIENT_URL` | *(nao definido)* | Endpoint opcional de recursos; por padrao usa a origem da pagina |
+| `SOCKET_PROXY_URL` | *(nao definido)* | Endpoint WebSocket opcional; por padrao usa `/ws/` na origem da pagina |
 | `NODE_ENV` | `development` | Ambiente Node (`development` ou `production`) |
 | `CACHE_MAX_FILES` | `5000` | Max arquivos no cache LRU |
 | `CACHE_MAX_MEMORY_MB` | `1024` | Max memoria do cache (MB) |

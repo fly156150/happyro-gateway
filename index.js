@@ -1,4 +1,5 @@
 require('dotenv').config();
+require('./runtime-config').writeRuntimeConfig();
 
 const express = require('express');
 const http = require('http');
@@ -15,6 +16,7 @@ const port = process.env.PORT || 3338;
 const routes = require('./src/routes');
 const debugMiddleware = require('./src/middlewares/debugMiddleware');
 const createRawImportMiddleware = require('./src/middlewares/rawImportMiddleware');
+const { createHttpProxyMiddleware } = require('./src/middlewares/httpProxyMiddleware');
 
 const CLIENT_PUBLIC_URL = process.env.CLIENT_PUBLIC_URL || 'http://localhost:8000';
 const ENABLE_WSPROXY = process.env.ENABLE_WSPROXY === 'true';
@@ -24,6 +26,8 @@ const ESRGAN_CACHE_DIR = process.env.ESRGAN_CACHE_DIR || './upscaled_cache';
 const ROBROWSER_PATH = process.env.ROBROWSER_PATH || '../roBrowserLegacy';
 const ROBROWSER_PUBLIC_PATH = process.env.ROBROWSER_PUBLIC_PATH || '/';
 const RATHENA_WEB_API_URL = process.env.RATHENA_WEB_API_URL || '';
+const ADMIN_API_URL = process.env.ADMIN_API_URL || 'http://127.0.0.1:18081';
+const HTTP_PROXY_TIMEOUT_MS = Number.parseInt(process.env.HTTP_PROXY_TIMEOUT_MS || '5000', 10);
 const IS_PROD = process.env.NODE_ENV === 'production';
 
 // Global variable to store validation status
@@ -76,43 +80,31 @@ async function startServer() {
 
   app.use(cors(corsOptions));
 
+  app.use('/api/adventure-tools', createHttpProxyMiddleware({
+    targetUrl: ADMIN_API_URL,
+    path: request => `/api/adventure-tools${request.url}`,
+    timeoutMs: HTTP_PROXY_TIMEOUT_MS,
+    logger,
+    serviceName: 'Admin adventure tools',
+    unavailableBody: { message: 'Adventure tools service unavailable' },
+  }));
+
   if (RATHENA_WEB_API_URL) {
-    const target = new URL(RATHENA_WEB_API_URL);
     const proxyPrefixes = ['/charconfig', '/emblem', '/MerchantStore', '/party', '/userconfig', '/get'];
+    const proxy = createHttpProxyMiddleware({
+      targetUrl: RATHENA_WEB_API_URL,
+      timeoutMs: HTTP_PROXY_TIMEOUT_MS,
+      logger,
+      serviceName: 'rAthena Web API',
+      unavailableBody: { error: 'rAthena Web API unavailable' },
+    });
 
     app.use((req, res, next) => {
       if (!proxyPrefixes.some(prefix => req.path === prefix || req.path.startsWith(`${prefix}/`))) {
         return next();
       }
 
-      const headers = {
-        ...req.headers,
-        host: target.host,
-        'x-forwarded-for': req.socket.remoteAddress,
-        'x-forwarded-host': req.headers.host || '',
-        'x-forwarded-proto': req.protocol,
-      };
-      const proxyRequest = http.request({
-        protocol: target.protocol,
-        hostname: target.hostname,
-        port: target.port,
-        method: req.method,
-        path: req.originalUrl,
-        headers,
-      }, (proxyResponse) => {
-        res.status(proxyResponse.statusCode || 502);
-        for (const [name, value] of Object.entries(proxyResponse.headers)) {
-          if (value !== undefined) res.setHeader(name, value);
-        }
-        proxyResponse.pipe(res);
-      });
-
-      proxyRequest.on('error', (error) => {
-        logger.error(`rAthena Web API proxy error: ${error.message}`);
-        if (!res.headersSent) res.status(502).json({ error: 'rAthena Web API unavailable' });
-        else res.end();
-      });
-      req.pipe(proxyRequest);
+      proxy(req, res);
     });
 
     logger.info(`rAthena Web API proxy enabled for ${proxyPrefixes.join(', ')}`);

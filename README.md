@@ -463,6 +463,8 @@ When `CLIENT_AUTOEXTRACT=true` (default in `src/config/configs.js`), files extra
 |----------|---------|-------------|
 | `PORT` | `3338` | Server port |
 | `CLIENT_PUBLIC_URL` | `http://localhost:8000` | Allowed CORS origin |
+| `REMOTE_CLIENT_URL` | *(unset)* | Optional browser resource endpoint; defaults to the page origin |
+| `SOCKET_PROXY_URL` | *(unset)* | Optional browser WebSocket endpoint; defaults to `/ws/` on the page origin |
 | `NODE_ENV` | `development` | Node environment |
 | `CACHE_MAX_FILES` | `5000` | Max files in LRU cache |
 | `CACHE_MAX_MEMORY_MB` | `1024` | Max cache memory (MB) |

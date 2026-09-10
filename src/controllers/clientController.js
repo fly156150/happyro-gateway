@@ -227,8 +227,9 @@ const Client = {
     // Check DATA_OVERRIDE_PATH (external data dir with loose files not in GRF)
     if (process.env.DATA_OVERRIDE_PATH) {
       const relativePath = filePath.replace(/^data[\/\\]/, '');
-      const overridePath = path.resolve(__dirname, '..', '..', process.env.DATA_OVERRIDE_PATH, relativePath);
-      if (fs.existsSync(overridePath)) {
+      for (const overrideRoot of process.env.DATA_OVERRIDE_PATH.split(path.delimiter).filter(Boolean)) {
+        const overridePath = path.resolve(__dirname, '..', '..', overrideRoot, relativePath);
+        if (!fs.existsSync(overridePath)) continue;
         try {
           const content = fs.readFileSync(overridePath);
           fileCache.set(cacheKey, content);
