@@ -5,6 +5,9 @@ const configs = require('../config/configs');
 const LRUCache = require('../utils/LRUCache');
 const logger = require('../utils/logger');
 const iconv = require('iconv-lite');
+const { resolveContainedPath, resolveConfiguredRoot } = require('../utils/safePath');
+
+const GATEWAY_ROOT = path.resolve(__dirname, '..', '..');
 
 /**
  * Convert mojibake (CP949 bytes interpreted as Latin-1) back to proper Korean Unicode.
@@ -211,10 +214,10 @@ const Client = {
 
     // Normalize paths
     let grfFilePath = filePath.replace(/\//g, '\\');
-    let localPath = path.join(__dirname, '..', '..', filePath);
+    let localPath = resolveContainedPath(GATEWAY_ROOT, filePath);
 
     // Check local file system first
-    if (fs.existsSync(localPath)) {
+    if (localPath && fs.existsSync(localPath)) {
       try {
         const content = fs.readFileSync(localPath);
         fileCache.set(cacheKey, content);
@@ -228,8 +231,10 @@ const Client = {
     if (process.env.DATA_OVERRIDE_PATH) {
       const relativePath = filePath.replace(/^data[\/\\]/, '');
       for (const overrideRoot of process.env.DATA_OVERRIDE_PATH.split(path.delimiter).filter(Boolean)) {
-        const overridePath = path.resolve(__dirname, '..', '..', overrideRoot, relativePath);
-        if (!fs.existsSync(overridePath)) continue;
+        const overrideBase = resolveConfiguredRoot(GATEWAY_ROOT, overrideRoot);
+        if (!overrideBase) continue;
+        const overridePath = resolveContainedPath(overrideBase, relativePath);
+        if (!overridePath || !fs.existsSync(overridePath)) continue;
         try {
           const content = fs.readFileSync(overridePath);
           fileCache.set(cacheKey, content);

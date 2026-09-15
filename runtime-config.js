@@ -35,7 +35,7 @@ function createRuntimeConfig(env = process.env) {
 
 function writeRuntimeConfig(env = process.env) {
   const config = createRuntimeConfig(env);
-  const robrowserPath = path.resolve(__dirname, env.ROBROWSER_PATH || '../roBrowserLegacy');
+  const robrowserPath = path.resolve(__dirname, env.ROBROWSER_PATH || '../../repos/happyro-client/dist/Web');
   const outputPath = path.join(robrowserPath, 'Config.runtime.js');
   fs.writeFileSync(outputPath, `window.ROConfigRuntime = ${JSON.stringify(config)};\n`, 'utf8');
   return true;

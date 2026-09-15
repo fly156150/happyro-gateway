@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- 默认 `ROBROWSER_PATH` 指向 HappyRO 客户端 `dist/Web`。
+- `getFile` 拒绝用户路径中的 `..`，避免解析到配置根目录之外。
+- `POST /search` 将过滤条件当作字面量，不再把未认证输入编译成正则。
 - 根 README 改为 HappyRO Gateway 说明，并记录资源查找、缓存、覆盖目录、WebSocket 与反向代理。
 - 支持按顺序读取多个客户端资源覆盖目录，使已审查的运行时中文 LUB 优先于原始 GRF。
 - 增加游戏内冒险工具到 Admin API 的同源反向代理，浏览器无需持有 Game Control 服务密钥。

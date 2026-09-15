@@ -5,6 +5,7 @@ const crypto = require('crypto');
 const router = express.Router();
 const Client = require('../controllers/clientController');
 const configs = require('../config/configs');
+const { literalSearchRegExp } = require('../utils/safePath');
 
 // Cache duration settings (in seconds)
 const CACHE_DURATIONS = {
@@ -64,7 +65,10 @@ router.post('/search', (req, res) => {
     return res.status(400).send('Search feature is disabled or invalid filter');
   }
 
-  const regex = new RegExp(filter, 'i');
+  const regex = literalSearchRegExp(filter);
+  if (!regex) {
+    return res.status(400).send('Search feature is disabled or invalid filter');
+  }
   const files = Client.search(regex);
   res.send(files.join('\n'));
 });

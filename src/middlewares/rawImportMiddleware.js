@@ -15,6 +15,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { resolveContainedPath } = require('../utils/safePath');
 
 /**
  * Import alias map — mirrors the Vite config resolve.alias and package.json deps.
@@ -111,11 +112,10 @@ function createRawImportMiddleware(rootDir) {
 
     // ── 1. Handle ?raw imports ──
     if ('raw' in req.query) {
-      const filePath = path.join(rootDir, req.path);
-      const resolved = path.resolve(filePath);
+      const resolved = resolveContainedPath(rootDir, req.path.replace(/^[/\\]+/, ''));
 
       // Security: prevent path traversal
-      if (!resolved.startsWith(path.resolve(rootDir))) {
+      if (!resolved) {
         return res.status(403).send('Forbidden');
       }
 
@@ -143,10 +143,9 @@ function createRawImportMiddleware(rootDir) {
 
     // ── 2. Rewrite imports in JS files under /src/ and /node_modules/ ──
     if (req.path.endsWith('.js') && (req.path.startsWith('/src/') || req.path.startsWith('/node_modules/'))) {
-      const filePath = path.join(rootDir, req.path);
-      const resolved = path.resolve(filePath);
+      const resolved = resolveContainedPath(rootDir, req.path.replace(/^[/\\]+/, ''));
 
-      if (!resolved.startsWith(path.resolve(rootDir))) {
+      if (!resolved) {
         return res.status(403).send('Forbidden');
       }
 

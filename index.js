@@ -6,8 +6,10 @@ const http = require('http');
 const path = require('path');
 const cors = require('cors');
 const net = require('net');
+const { randomUUID } = require('crypto');
 const compression = require('compression');
 const logger = require('./src/utils/logger');
+const { bridgeGameStream } = require('./src/utils/gameStreamProxy');
 const StartupValidator = require('./src/validators/startupValidator');
 
 const app = express();
@@ -23,7 +25,7 @@ const ENABLE_WSPROXY = process.env.ENABLE_WSPROXY === 'true';
 const ENABLE_STATIC_SERVE = process.env.ENABLE_STATIC_SERVE === 'true';
 const ESRGAN_ENABLED = process.env.ESRGAN_ENABLED === 'true';
 const ESRGAN_CACHE_DIR = process.env.ESRGAN_CACHE_DIR || './upscaled_cache';
-const ROBROWSER_PATH = process.env.ROBROWSER_PATH || '../roBrowserLegacy';
+const ROBROWSER_PATH = process.env.ROBROWSER_PATH || '../../repos/happyro-client/dist/Web';
 const ROBROWSER_PUBLIC_PATH = process.env.ROBROWSER_PUBLIC_PATH || '/';
 const RATHENA_WEB_API_URL = process.env.RATHENA_WEB_API_URL || '';
 const ADMIN_API_URL = process.env.ADMIN_API_URL || 'http://127.0.0.1:18081';
@@ -80,6 +82,20 @@ async function startServer() {
 
   app.use(cors(corsOptions));
 
+  // Compression middleware - compresses text AND binary game assets.
+  // Registered before the proxies so proxied API responses are compressed too.
+  app.use(compression({
+    threshold: 1024,
+    filter: (req, res) => {
+      // Compress game assets (SPR, RSM, GND, etc.) that are highly compressible
+      if (COMPRESSIBLE_GAME_EXTENSIONS.test(req.path)) {
+        return true;
+      }
+      // Default compression filter for text/json/etc
+      return compression.filter(req, res);
+    }
+  }));
+
   app.use('/api/adventure-tools', createHttpProxyMiddleware({
     targetUrl: ADMIN_API_URL,
     path: request => `/api/adventure-tools${request.url}`,
@@ -112,19 +128,6 @@ async function startServer() {
 
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
-
-  // Compression middleware - compresses text AND binary game assets
-  app.use(compression({
-    threshold: 1024,
-    filter: (req, res) => {
-      // Compress game assets (SPR, RSM, GND, etc.) that are highly compressible
-      if (COMPRESSIBLE_GAME_EXTENSIONS.test(req.path)) {
-        return true;
-      }
-      // Default compression filter for text/json/etc
-      return compression.filter(req, res);
-    }
-  }));
 
   // Debug middleware only in development
   if (!IS_PROD) {
@@ -190,7 +193,7 @@ async function startServer() {
   // Embedded WebSocket proxy (replaces standalone wsproxy)
   if (ENABLE_WSPROXY) {
     const WebSocket = require('ws');
-    const wss = new WebSocket.Server({ noServer: true });
+    const wss = new WebSocket.Server({ noServer: true, maxPayload: 64 * 1024 });
 
     // Allowed rAthena targets (security: only explicitly listed game servers).
     // Override via WS_ALLOWED_TARGETS (comma-separated host:port) for deployments
@@ -259,54 +262,21 @@ async function startServer() {
         return;
       }
 
-      logger.info(`WS proxy: connecting ${target} -> ${destination}`);
+      const connectionId = randomUUID();
+      const connectionLog = event => logger.info(JSON.stringify({
+        timestamp: new Date().toISOString(), component: 'game-proxy', connectionId,
+        target, destination, ...event
+      }));
+      connectionLog({ event: 'connecting' });
       const tcp = net.connect(destinationPort, destinationHost);
       tcp.setNoDelay(true);
 
-      // Buffer messages received before the TCP connection is established.
-      // roBrowser sends the first game packet synchronously in its onopen handler,
-      // which races with net.connect()'s async 'connect' event. Without buffering,
-      // packets arriving before 'connect' fires are silently dropped.
-      const MAX_PENDING = 64;
-      const pending = [];
-      let connected = false;
-
-      // Single cleanup guard: ensures tcp and ws are torn down exactly once
-      // regardless of which side closes first or whether an error occurs.
-      // Prevents double tcp.end() and misleading "client closed" log on errors.
-      let cleaned = false;
-      const cleanup = (reason) => {
-        if (cleaned) return;
-        cleaned = true;
-        logger.info(`WS proxy: closed ${target} (${reason})`);
-        if (!tcp.destroyed) tcp.destroy();
-        if (ws.readyState === WebSocket.OPEN) ws.close();
-      };
-
       tcp.on('connect', () => {
-        connected = true;
-        logger.info(`WS proxy: connected ${target} -> ${destination}`);
-        pending.splice(0).forEach(d => tcp.write(d));
+        connectionLog({ event: 'connected' });
       });
-
-      ws.on('message', (data) => {
-        if (connected) {
-          tcp.write(data);
-        } else if (pending.length < MAX_PENDING) {
-          pending.push(data);
-        } else {
-          logger.warn(`WS proxy: pending queue full for ${target}, dropping message`);
-        }
+      bridgeGameStream(ws, tcp, {
+        onClose: reason => connectionLog({ event: 'closed', reason, bytesRead: tcp.bytesRead, bytesWritten: tcp.bytesWritten })
       });
-
-      tcp.on('data', (data) => {
-        if (ws.readyState === WebSocket.OPEN) ws.send(data);
-      });
-
-      ws.on('close', () => cleanup('client closed'));
-      ws.on('error', (err) => cleanup(`client error: ${err.message}`));
-      tcp.on('close', () => cleanup('server closed'));
-      tcp.on('error', (err) => cleanup(`server error: ${err.message}`));
     });
 
     logger.info(`WebSocket proxy enabled on /ws/ (allowed: ${ALLOWED_TARGETS.join(', ')})`);
