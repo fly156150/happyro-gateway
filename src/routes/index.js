@@ -6,6 +6,7 @@ const router = express.Router();
 const Client = require('../controllers/clientController');
 const configs = require('../config/configs');
 const { literalSearchRegExp } = require('../utils/safePath');
+const { resolvePwaFaviconPath } = require('../utils/pwaFavicon');
 
 // Cache duration settings (in seconds)
 const CACHE_DURATIONS = {
@@ -115,6 +116,17 @@ router.get('/*', async (req, res) => {
     res.set('Cache-Control', `public, max-age=${CACHE_DURATIONS.index}`);
     res.type(path.extname('index.html'));
     return res.send(fs.readFileSync(indexPath, 'utf8'));
+  }
+
+  // Browsers request /favicon.ico on the origin before parsing HTML <link rel="icon">.
+  // Prefer the PWA portrait so the tab does not flash a different Gateway icon.
+  if (filePath === 'favicon.ico') {
+    const pwaFavicon = resolvePwaFaviconPath(path.join(__dirname, '..', '..'), process.env.ROBROWSER_PATH);
+    if (pwaFavicon) {
+      res.type('image/x-icon');
+      res.set('Cache-Control', 'no-store');
+      return res.sendFile(pwaFavicon);
+    }
   }
 
   // Try to get pre-computed ETag from cache first (avoids MD5 on every request)
