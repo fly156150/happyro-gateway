@@ -199,12 +199,31 @@ const Client = {
    * Get file with pre-computed ETag from cache
    * Returns { data, etag } or null
    */
+  customResourcesEnabled(filePath) {
+    return Boolean(process.env.CUSTOM_RESOURCE_PATH) && /^data[\/\\]/i.test(filePath);
+  },
+
   getFileCachedETag(filePath) {
+    if (this.customResourcesEnabled(filePath)) return null;
     const cacheKey = filePath.toLowerCase();
     return fileCache.get(cacheKey);
   },
 
   async getFile(filePath) {
+    // Check user files before all built-in/local caches. No user bytes enter the LRU.
+    if (this.customResourcesEnabled(filePath)) {
+      const root = resolveConfiguredRoot(GATEWAY_ROOT, process.env.CUSTOM_RESOURCE_PATH);
+      const relative = decodeMojibake(filePath).replace(/^data[\/\\]/i, '');
+      const candidate = resolveContainedPath(root, relative);
+      if (candidate && fs.lstatSync(candidate, {throwIfNoEntry: false})) {
+        const real = fs.realpathSync(candidate);
+        const inside = path.relative(fs.realpathSync(root), real);
+        if (inside.startsWith('..') || path.isAbsolute(inside) || !fs.statSync(real).isFile()) {
+          throw new Error('Custom resource is not a contained regular file');
+        }
+        return fs.readFileSync(real);
+      }
+    }
     // Check cache first
     const cacheKey = filePath.toLowerCase();
     const cached = fileCache.get(cacheKey);

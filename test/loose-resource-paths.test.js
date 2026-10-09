@@ -26,3 +26,28 @@ test('serves Korean loose resources for the client CP949 byte-string paths', asy
   assert.deepEqual(await Client.getFile(clientPath.replaceAll('/', '\\')), expected);
   assert.equal(await Client.getFile('data/../../outside.bmp'), null);
 });
+
+test('custom resources win over cached built-ins and update or revert without restarting', async t => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'happyro-custom-icons-'));
+  const oldCustom = process.env.CUSTOM_RESOURCE_PATH, oldOverrides = process.env.DATA_OVERRIDE_PATH;
+  t.after(async () => {
+    if (oldCustom === undefined) delete process.env.CUSTOM_RESOURCE_PATH; else process.env.CUSTOM_RESOURCE_PATH = oldCustom;
+    if (oldOverrides === undefined) delete process.env.DATA_OVERRIDE_PATH; else process.env.DATA_OVERRIDE_PATH = oldOverrides;
+    await fs.rm(root, {recursive: true});
+  });
+  const builtin = path.join(root, 'builtin'), custom = path.join(root, 'custom');
+  await fs.mkdir(builtin); await fs.mkdir(custom);
+  await fs.writeFile(path.join(builtin, 'custom-priority.bmp'), 'builtin');
+  process.env.DATA_OVERRIDE_PATH = builtin;
+  process.env.CUSTOM_RESOURCE_PATH = custom;
+  const file = 'data/custom-priority.bmp';
+  assert.equal((await Client.getFile(file)).toString(), 'builtin');
+  await fs.writeFile(path.join(custom, 'custom-priority.bmp'), 'custom');
+  assert.equal(Client.getFileCachedETag(file), null);
+  assert.equal((await Client.getFile(file)).toString(), 'custom');
+  await fs.writeFile(path.join(custom, 'custom-priority.bmp'), 'updated');
+  assert.equal((await Client.getFile(file)).toString(), 'updated');
+  await fs.unlink(path.join(custom, 'custom-priority.bmp'));
+  assert.equal((await Client.getFile(file)).toString(), 'builtin');
+  assert.equal(await Client.getFile('data/../../outside.bmp'), null);
+});
