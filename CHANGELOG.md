@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- 新增游戏会话创建、轮换与撤销 API；HTTP 和 HTTPS 均支持保持登录，持久凭据使用 HttpOnly Cookie，HTTPS 另设 Secure，页面内会话不写 Cookie。
+- 使用系统随机源生成凭据和一次性票据，拒绝跨站请求并禁止响应缓存；配套服务端会话表与认证扩展，相关 Cookie、轮换、撤销及实际三端流程验证通过。
+
 - 默认 `ROBROWSER_PATH` 指向 HappyRO 客户端 `dist/Web`。
 - `getFile` 拒绝用户路径中的 `..`，避免解析到配置根目录之外。
 - `POST /search` 将过滤条件当作字面量，不再把未认证输入编译成正则。

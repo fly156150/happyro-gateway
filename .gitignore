@@ -4,6 +4,9 @@
 /resources/*
 /System/*
 /AI/*
+/AI
+/BGM
+/System
 
 # Dependencies
 /node_modules/

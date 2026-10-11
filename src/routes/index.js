@@ -30,6 +30,13 @@ const staticExtensions = [
 
 // Set cache headers based on file type, returns ETag
 function setCacheHeaders(res, filePath, content, cachedETag) {
+  if (Client.customResourcesEnabled(filePath)) {
+    const etag = generateETag(content);
+    res.set('ETag', `"${etag}"`);
+    res.set('Cache-Control', 'no-store');
+    return etag;
+  }
+
   const ext = path.extname(filePath).toLowerCase();
 
   if (staticExtensions.includes(ext)) {
@@ -104,7 +111,7 @@ router.get('/list-files', async (req, res) => {
 });
 
 // Wildcard route for file serving
-router.get('/*', async (req, res) => {
+router.get('/*', async (req, res, next) => {
   const filePath = req.params[0];
 
   // Serve index.html for root
@@ -145,7 +152,9 @@ router.get('/*', async (req, res) => {
   }
 
   // Cache miss - fetch from GRF or local filesystem
-  const fileContent = await Client.getFile(filePath);
+  let fileContent;
+  try { fileContent = await Client.getFile(filePath); }
+  catch (error) { res.set('Cache-Control', 'no-store'); return next(error); }
 
   if (!fileContent) {
     res.set('Cache-Control', 'no-store');
