@@ -2,12 +2,13 @@
 
 HappyRO 的 Node.js 网关。一个进程提供 PWA 静态文件、客户端资源、WebSocket 到 rAthena 的代理，以及 Web API / 冒险工具反向代理。
 
-基于 [roBrowserLegacy-RemoteClient-JS](https://github.com/FranciscoWallison/roBrowserLegacy-RemoteClient-JS)。上游说明保留在 [docs/upstream.md](docs/upstream.md)。
+基于 [roBrowserLegacy-RemoteClient-JS](https://github.com/FranciscoWallison/roBrowserLegacy-RemoteClient-JS)。HappyRO 配置与运行方式以本仓库文档和根仓库编排为准。
 
-本机由根仓库启动，监听 `127.0.0.1:3338`。
+本机由根仓库启动，默认端口 `3338`；监听主机接口，可供局域网设备访问。
 
 ## 文档
 
+- [文档索引](docs/README.md)
 - [架构](docs/architecture.md)
 - [配置](docs/configuration.md)
 - [资源查找](docs/resource-resolution.md)
@@ -15,6 +16,8 @@ HappyRO 的 Node.js 网关。一个进程提供 PWA 静态文件、客户端资�
 - [故障检查](docs/troubleshooting.md)
 
 ## 本机入口
+
+以下命令从 HappyRO 根仓库执行：
 
 ```bash
 make configure-gateway
@@ -29,10 +32,4 @@ make gateway-verify
 
 ## 保持登录
 
-`/api/game-session/create`、`resume`、`revoke` 使用现有 `RATHENA_WEB_API_URL` 访问配套服务端会话接口。需要服务端会话表及 0x0d05 登录扩展；不把密码写入 Cookie 或浏览器存储。
-
-HTTP 与 HTTPS 均支持 30 天保持登录：Cookie 为 HttpOnly、SameSite=Strict，HTTPS 额外设置 Secure，并采用独立 Cookie 名称；反向代理需保留浏览器 Host。请求必须携带匹配 Host 的 HTTP/HTTPS Origin 和 application/json，跨站来源被拒绝。响应 no-store，凭据不写日志。页面内会话返回临时凭据供客户端仅保留在内存。
-
-Gateway 使用系统随机源生成 256 位凭据，恢复时轮换并换取单次游戏票据；服务端负责摘要存储、过期、密码／封禁检查与撤销。会话接口错误不会清除其他标签页刚轮换的 Cookie。
-
-测试：`node --test test/game-session.test.js test/http-proxy.test.js`。
+HTTP／HTTPS 的 Cookie、临时凭据、代理和服务端依赖见[会话说明](docs/game-sessions.md)。
