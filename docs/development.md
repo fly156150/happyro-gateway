@@ -3,7 +3,7 @@
 在 Gateway 仓库执行；先由根仓库准备 `.env`、客户端产物与运行资源。不要在已由服务管理器监听的端口另启动开发进程。
 
 ```bash
-npm ci
+npm install --ignore-scripts
 npm start
 ```
 

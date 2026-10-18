@@ -12,7 +12,7 @@ HappyRO 的 Node.js 网关。一个进程提供 PWA 静态文件、客户端资�
 - [架构](docs/architecture.md)
 - [配置](docs/configuration.md)
 - [资源查找](docs/resource-resolution.md)
-- [WebSocket 代理](docs/websocket-proxy.md)
+- [WebSocket 代理](docs/connections.md)
 - [故障检查](docs/troubleshooting.md)
 
 ## 本机入口
@@ -32,4 +32,4 @@ make gateway-verify
 
 ## 保持登录
 
-HTTP／HTTPS 的 Cookie、临时凭据、代理和服务端依赖见[会话说明](docs/game-sessions.md)。
+HTTP／HTTPS 的 Cookie、临时凭据、代理和服务端依赖见[会话说明](docs/connections.md#保持登录与连接恢复)。

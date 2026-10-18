@@ -1,7 +1,8 @@
 # 故障检查
 
+在 HappyRO 根仓库执行 `make gateway-verify`；在 Gateway 仓库执行：
+
 ```bash
-make gateway-verify
 npm run doctor
 ```
 
@@ -15,4 +16,4 @@ npm run doctor
 
 日志：`work/runtime/gateway/gateway.log`（由根仓库脚本指定）。
 
-保持登录失败时核对 Origin 与 Host、Cookie 协议、服务端会话 SQL 和客户端／Gateway／Server 配套版本，见[会话说明](game-sessions.md)。
+保持登录失败时核对 Origin 与 Host、Cookie 协议、服务端会话 SQL 和客户端／Gateway／Server 配套版本，见[会话说明](connections.md#保持登录与连接恢复)。

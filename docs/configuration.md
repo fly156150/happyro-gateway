@@ -10,6 +10,7 @@
 | `WS_ALLOWED_TARGETS` | 允许的 TCP 目标 |
 | `RATHENA_WEB_API_URL` | web-server 基址 |
 | `DATA_OVERRIDE_PATH` | 冒号分隔的覆盖目录 |
+| `CUSTOM_RESOURCE_PATH` | 用户资源目录，优先于内置来源与缓存；路径相对于客户端 data/ |
 | `ENABLE_WSPROXY` | 内嵌 WebSocket 代理 |
 | `ENABLE_STATIC_SERVE` | 内嵌静态文件服务 |
 | `CLIENT_DIAGNOSTICS_DIR` | 可选手机调试日志目录；未设置时关闭接收 |
