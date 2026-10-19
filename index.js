@@ -293,7 +293,7 @@ async function startServer() {
     logger.info(`WebSocket proxy enabled on /ws/ (allowed: ${ALLOWED_TARGETS.join(', ')})`);
   }
 
-  server.listen(port, async () => {
+  server.listen(port, process.env.HOST, async () => {
     logger.info(`Server ready on http://localhost:${port}` +
       (ENABLE_STATIC_SERVE ? ` | Game: http://localhost:${port}${ROBROWSER_PUBLIC_PATH}/index.html` : '') +
       (ENABLE_WSPROXY ? ` | WS Proxy: /ws/` : ''));
