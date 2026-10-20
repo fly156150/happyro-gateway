@@ -4,6 +4,7 @@
 
 | 变量 | 作用 |
 | --- | --- |
+| `HOST` | 监听地址；仓库示例为 `127.0.0.1`，未设置时使用 Node.js 默认监听行为 |
 | `PORT` | HTTP 与 WebSocket 端口，默认 `3338` |
 | `ROBROWSER_PATH` | PWA 静态根，指向 Client `dist/Web` |
 | `ROBROWSER_PUBLIC_PATH` | 浏览器路径前缀 `/applications/pwa` |
