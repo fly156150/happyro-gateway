@@ -1,5 +1,4 @@
-const fs = require('fs');
-const path = require('path');
+const { createClientDefaults } = require('./client-defaults');
 
 function optionalUrl(value, protocols, name, ensureTrailingSlash = false) {
   const input = value?.trim();
@@ -23,22 +22,24 @@ function optionalUrl(value, protocols, name, ensureTrailingSlash = false) {
   return url.toString();
 }
 
-function createRuntimeConfig(env = process.env) {
+function createRuntimeConfig(env = process.env, schema) {
   const remoteClient = optionalUrl(env.REMOTE_CLIENT_URL, ['http:', 'https:'], 'REMOTE_CLIENT_URL', true);
   const socketProxy = optionalUrl(env.SOCKET_PROXY_URL, ['ws:', 'wss:'], 'SOCKET_PROXY_URL');
 
   return {
+    clientDefaults: createClientDefaults(env, schema),
     ...(remoteClient && { remoteClient }),
     ...(socketProxy && { socketProxy }),
   };
 }
 
-function writeRuntimeConfig(env = process.env) {
-  const config = createRuntimeConfig(env);
-  const robrowserPath = path.resolve(__dirname, env.ROBROWSER_PATH || '../../repos/happyro-client/dist/Web');
-  const outputPath = path.join(robrowserPath, 'Config.runtime.js');
-  fs.writeFileSync(outputPath, `window.ROConfigRuntime = ${JSON.stringify(config)};\n`, 'utf8');
-  return true;
+// Serve from memory rather than the build directory: rebuilding the PWA cannot replace deployment settings.
+function createRuntimeConfigHandler(config) {
+  const source = `window.ROConfigRuntime = ${JSON.stringify(config)};\n`;
+  return (_req, res) => {
+    res.set('Cache-Control', 'no-store');
+    res.type('application/javascript').send(source);
+  };
 }
 
-module.exports = { createRuntimeConfig, writeRuntimeConfig };
+module.exports = { createRuntimeConfig, createRuntimeConfigHandler };
