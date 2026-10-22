@@ -30,7 +30,7 @@ const ESRGAN_CACHE_DIR = process.env.ESRGAN_CACHE_DIR || './upscaled_cache';
 const ROBROWSER_PATH = process.env.ROBROWSER_PATH || '../../repos/happyro-client/dist/Web';
 const ROBROWSER_PUBLIC_PATH = process.env.ROBROWSER_PUBLIC_PATH || '/';
 const RATHENA_WEB_API_URL = process.env.RATHENA_WEB_API_URL || '';
-const ADMIN_API_URL = process.env.ADMIN_API_URL || 'http://127.0.0.1:18081';
+const HAPPYRO_API_URL = process.env.HAPPYRO_API_URL || 'http://127.0.0.1:18081';
 const HTTP_PROXY_TIMEOUT_MS = Number.parseInt(process.env.HTTP_PROXY_TIMEOUT_MS || '5000', 10);
 const IS_PROD = process.env.NODE_ENV === 'production';
 
@@ -99,7 +99,7 @@ async function startServer() {
   }));
 
   app.use('/api/adventure-tools', createHttpProxyMiddleware({
-    targetUrl: ADMIN_API_URL,
+    targetUrl: HAPPYRO_API_URL,
     path: request => `/api/adventure-tools${request.url}`,
     timeoutMs: HTTP_PROXY_TIMEOUT_MS,
     logger,
