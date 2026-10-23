@@ -10,12 +10,12 @@
 | `ROBROWSER_PUBLIC_PATH` | 浏览器路径前缀 `/applications/pwa` |
 | `WS_ALLOWED_TARGETS` | 允许的 TCP 目标 |
 | `RATHENA_WEB_API_URL` | web-server 基址 |
-| `DATA_OVERRIDE_PATH` | 冒号分隔的覆盖目录 |
+| `DATA_OVERRIDE_PATH` | 使用系统路径分隔符的覆盖目录（Unix 为冒号，Windows 为分号） |
 | `CUSTOM_RESOURCE_PATH` | 用户资源目录，优先于内置来源与缓存；路径相对于客户端 data/ |
 | `ENABLE_WSPROXY` | 内嵌 WebSocket 代理 |
 | `ENABLE_STATIC_SERVE` | 内嵌静态文件服务 |
 | `CLIENT_DIAGNOSTICS_DIR` | 可选手机调试日志目录；未设置时关闭接收 |
-| `ESRGAN_ENABLED` | 必须为 `false` |
+| `ESRGAN_ENABLED` | HappyRO 模板为 `false`；启用需安装可选插件并准备缓存 |
 
 可选 `REMOTE_CLIENT_URL` 和 `SOCKET_PROXY_URL` 通过动态 `Config.runtime.js` 返回。本机保持为空，让浏览器使用当前页面 origin。
 
@@ -30,3 +30,5 @@
 Gateway 动态提供 `<ROBROWSER_PUBLIC_PATH>/Config.runtime.js`，优先于静态路由并禁用缓存。PWA 构建覆盖静态空模板不会改变该响应，不再写入构建目录。已有玩家 localStorage 设置优先；恢复默认使用部署值，运行中的自动战斗状态不属于部署配置。
 
 `CLIENT_SCRIPT_TEXT_MIN_CONTRAST` 设置 NPC/任务脚本文字的最低对比度目标，范围 4.5–7、默认 4.5；颜色修正始终开启。无法达到目标时采用对比度最高的黑/白端点。
+
+完整部署变量和默认值见[环境变量参考](https://happyro.kugarocks.com/deploy/environment-variables)。Docker 修改部署 `.env` 后重新创建 Gateway 容器，单独 restart 不会更新环境；原生环境重启进程后刷新页面。
