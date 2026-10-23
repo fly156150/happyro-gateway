@@ -1,5 +1,6 @@
 require('dotenv').config();
-require('./runtime-config').writeRuntimeConfig();
+const { createRuntimeConfig, createRuntimeConfigHandler } = require('./runtime-config');
+const runtimeConfig = createRuntimeConfig();
 
 const express = require('express');
 const http = require('http');
@@ -186,6 +187,9 @@ async function startServer() {
       index: Client.getIndexStats ? Client.getIndexStats() : null,
     });
   });
+
+  // This route takes precedence over the placeholder shipped with the static PWA.
+  app.get(`${ROBROWSER_PUBLIC_PATH.replace(/\/$/, '')}/Config.runtime.js`, createRuntimeConfigHandler(runtimeConfig));
 
   // Serve roBrowserLegacy static files (replaces live-server)
   if (ENABLE_STATIC_SERVE) {
