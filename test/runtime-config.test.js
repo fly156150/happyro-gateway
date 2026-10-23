@@ -69,3 +69,13 @@ test('runtime HTTP config survives PWA placeholder replacement and is not cached
     assert.equal(await response.text(), `window.ROConfigRuntime = ${JSON.stringify(settings)};\n`);
   }
 });
+
+test('validates the script text contrast policy without an off switch', () => {
+  assert.equal(config({}).clientDefaults.scriptText.minContrast, 4.5);
+  for (const value of ['4.5', '5.5', '7']) {
+    assert.equal(config({ CLIENT_SCRIPT_TEXT_MIN_CONTRAST: value }).clientDefaults.scriptText.minContrast, Number(value));
+  }
+  for (const value of ['4.49', '7.01', 'false', 'NaN']) {
+    assert.throws(() => config({ CLIENT_SCRIPT_TEXT_MIN_CONTRAST: value }), /CLIENT_SCRIPT_TEXT_MIN_CONTRAST/);
+  }
+});
