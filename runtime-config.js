@@ -26,7 +26,11 @@ function createRuntimeConfig(env = process.env, schema) {
   const remoteClient = optionalUrl(env.REMOTE_CLIENT_URL, ['http:', 'https:'], 'REMOTE_CLIENT_URL', true);
   const socketProxy = optionalUrl(env.SOCKET_PROXY_URL, ['ws:', 'wss:'], 'SOCKET_PROXY_URL');
 
+  const timeZone = env.APP_TIMEZONE || 'Asia/Shanghai';
+  // Fail startup for a typo instead of falling back to the host/browser timezone.
+  new Intl.DateTimeFormat('en', { timeZone }).format(0);
   return {
+    timeZone,
     clientDefaults: createClientDefaults(env, schema),
     ...(remoteClient && { remoteClient }),
     ...(socketProxy && { socketProxy }),

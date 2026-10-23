@@ -165,6 +165,7 @@ async function startServer() {
 
     res.json({
       ...validationStatus,
+      timeZone: runtimeConfig.timeZone,
       missingFiles: missingInfo,
       cache: cacheStats,
       index: indexStats,

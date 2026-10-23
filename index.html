@@ -314,7 +314,7 @@
         }
 
         // Update timestamp
-        const timestamp = new Date(data.timestamp).toLocaleString('en-US');
+        const timestamp = new Date(data.timestamp).toLocaleString('zh-CN', { timeZone: data.timeZone, hourCycle: 'h23' });
         statusDiv.innerHTML += `<div style="margin-top: 15px; font-size: 0.85em; color: #666; text-align: right;">Last checked: ${timestamp}</div>`;
 
         // Show encoding info if available

@@ -10,7 +10,7 @@ const schema = require('./support/client-defaults');
 const config = env => createRuntimeConfig(env, schema);
 
 test('uses the published PWA defaults and omits empty runtime URLs', () => {
-  const expected = { clientDefaults: createClientDefaults({}, schema) };
+  const expected = { timeZone: 'Asia/Shanghai', clientDefaults: createClientDefaults({}, schema) };
   assert.deepEqual(config({}), expected);
   assert.deepEqual(config({ REMOTE_CLIENT_URL: ' ', SOCKET_PROXY_URL: '', CLIENT_BGM_VOLUME: ' ' }), expected);
 });
@@ -19,9 +19,11 @@ test('accepts independent resource and WebSocket URLs', () => {
   assert.equal(result.remoteClient, 'https://happyro-static.example.com/');
   assert.equal(result.socketProxy, 'wss://happyro-ws.example.com/ws/');
 });
-test('rejects unsupported URL protocols', () => {
+test('rejects unsupported URL protocols and invalid timezones', () => {
   assert.throws(() => config({ REMOTE_CLIENT_URL: 'ftp://static.example.com' }), /REMOTE_CLIENT_URL must use/);
   assert.throws(() => config({ SOCKET_PROXY_URL: 'https://ws.example.com/ws/' }), /SOCKET_PROXY_URL must use/);
+  assert.throws(() => config({ APP_TIMEZONE: 'Invalid/Zone' }), RangeError);
+  assert.equal(config({ APP_TIMEZONE: 'UTC' }).timeZone, 'UTC');
 });
 test('validates configured booleans, decimals, enums, category lists and combined ranges', () => {
   const result = config({ CLIENT_AUTO_TELEPORT_ENABLED: 'false', CLIENT_BGM_VOLUME: '0', CLIENT_GRAPHICS_FPS_LIMIT: '-1', CLIENT_AUTO_PICKUP_CATEGORIES: 'card, other', CLIENT_CAMERA_PHONE_PORTRAIT_ZOOM: '180.5' }).clientDefaults;
@@ -54,7 +56,7 @@ test('reads the shipped schema, produces independent defaults and exposes only c
 test('runtime HTTP config survives PWA placeholder replacement and is not cached', async t => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'happyro-runtime-http-'));
   const placeholder = path.join(root, 'Config.runtime.js');
-  const settings = config({ CLIENT_AUTO_TELEPORT_ENABLED: 'false', CLIENT_BGM_VOLUME: '0.2' });
+  const settings = config({ CLIENT_AUTO_TELEPORT_ENABLED: 'false', CLIENT_BGM_VOLUME: '0.2', APP_TIMEZONE: 'UTC' });
   const app = express();
   app.get('/applications/pwa/Config.runtime.js', createRuntimeConfigHandler(settings));
   app.use('/applications/pwa', express.static(root));
