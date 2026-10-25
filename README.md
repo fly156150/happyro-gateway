@@ -33,3 +33,5 @@ make gateway-verify
 ## 保持登录
 
 HTTP／HTTPS 的 Cookie、临时凭据、代理和服务端依赖见[会话说明](docs/game-sessions.md)。
+
+上述本机 make 启停入口面向 Linux systemd；macOS 使用已配置的 launchd 服务，见根仓库[服务管理](../../docs/operations/services.md)。构建与重启是两个步骤，核对服务实际使用的产物路径后再验收。
