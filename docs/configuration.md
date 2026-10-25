@@ -23,11 +23,13 @@
 
 ## 客户端默认设置
 
-`.env.example` 中的 53 个 `CLIENT_*` 设置可覆盖镜头、自动战斗/瞬移、拾取、画质、音频、界面和地图显示的默认值；空值使用 PWA 内置值。默认值及校验范围由 `ROBROWSER_PATH/client-defaults.schema.json` 提供，该文件由 Client 完整构建生成。Gateway 不维护第二份生产默认值。
+`.env.example` 中的 `CLIENT_*` 设置可覆盖镜头、自动战斗/瞬移、拾取、画质、音频、界面和地图显示的默认值；空值使用 PWA 内置值。默认值及校验范围由 `ROBROWSER_PATH/client-defaults.schema.json` 提供，该文件由 Client 完整构建生成。Gateway 不维护第二份生产默认值。
 
 布尔值只接受 true/false，数值按定义校验范围和整数要求；拾取类别采用不重复的逗号列表。活动范围不得小于搜怪范围。配置非法或默认定义缺失时拒绝启动。新增配置项需先部署新版 PWA；仅调整现有变量时，重启 Gateway 并刷新游戏页面即可。
 
 Gateway 动态提供 `<ROBROWSER_PUBLIC_PATH>/Config.runtime.js`，优先于静态路由并禁用缓存。PWA 构建覆盖静态空模板不会改变该响应，不再写入构建目录。已有玩家 localStorage 设置优先；恢复默认使用部署值，运行中的自动战斗状态不属于部署配置。
+
+自动恢复比例使用 `CLIENT_AUTO_RECOVERY_HP_TRIGGER_PERCENT`、`CLIENT_AUTO_RECOVERY_HP_TARGET_PERCENT`、`CLIENT_AUTO_RECOVERY_SP_TRIGGER_PERCENT`、`CLIENT_AUTO_RECOVERY_SP_TARGET_PERCENT`；内置值分别为 50、80、20、50，单位为整数百分比。Gateway 要求每组恢复至高于低于值；这些变量只提供新配置／恢复默认的初值，不开启自动恢复，也不覆盖角色已保存的选择。
 
 `CLIENT_SCRIPT_TEXT_MIN_CONTRAST` 设置 NPC/任务脚本文字的最低对比度目标，范围 4.5–7、默认 4.5；颜色修正始终开启。无法达到目标时采用对比度最高的黑/白端点。
 
