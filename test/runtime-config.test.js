@@ -81,3 +81,12 @@ test('validates the script text contrast policy without an off switch', () => {
     assert.throws(() => config({ CLIENT_SCRIPT_TEXT_MIN_CONTRAST: value }), /CLIENT_SCRIPT_TEXT_MIN_CONTRAST/);
   }
 });
+
+test('validates independent recovery thresholds and their combined ordering', () => {
+  const env = { CLIENT_AUTO_RECOVERY_HP_TRIGGER_PERCENT: '80', CLIENT_AUTO_RECOVERY_HP_TARGET_PERCENT: '100', CLIENT_AUTO_RECOVERY_SP_TRIGGER_PERCENT: '50', CLIENT_AUTO_RECOVERY_SP_TARGET_PERCENT: '90' };
+  assert.deepEqual(config(env).clientDefaults.autoRecovery, { hp: { trigger: 80, target: 100 }, sp: { trigger: 50, target: 90 } });
+  for (const stat of ['HP', 'SP']) {
+    for (const value of ['0', '100', '2.5', 'NaN']) assert.throws(() => config({ ...env, [`CLIENT_AUTO_RECOVERY_${stat}_TRIGGER_PERCENT`]: value }), /TRIGGER_PERCENT/);
+    for (const value of ['1', '101', '50']) assert.throws(() => config({ ...env, [`CLIENT_AUTO_RECOVERY_${stat}_TARGET_PERCENT`]: value }), /TARGET_PERCENT/);
+  }
+});

@@ -46,6 +46,13 @@ function createClientDefaults(env, schema = readClientDefaultsSchema(env)) {
   if (ranges.activity < ranges.search) {
     throw new Error('CLIENT_AUTO_COMBAT_ACTIVITY_RANGE must be at least CLIENT_AUTO_COMBAT_SEARCH_RANGE');
   }
+  for (const stat of ['hp', 'sp']) {
+    const { trigger, target } = defaults.autoRecovery[stat];
+    if (target <= trigger) {
+      const prefix = `CLIENT_AUTO_RECOVERY_${stat.toUpperCase()}`;
+      throw new Error(`${prefix}_TARGET_PERCENT must be greater than ${prefix}_TRIGGER_PERCENT`);
+    }
+  }
   return defaults;
 }
 
