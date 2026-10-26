@@ -8,13 +8,13 @@ const Client = require('../src/controllers/clientController');
 
 test('serves Korean loose resources for the client CP949 byte-string paths', async (t) => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'happyro-loose-icons-'));
-  const previous = process.env.DATA_OVERRIDE_PATH;
+  const previous = process.env.HAPPYRO_GATEWAY_RESOURCE_OVERRIDE_DIRS;
   t.after(async () => {
-    if (previous === undefined) delete process.env.DATA_OVERRIDE_PATH;
-    else process.env.DATA_OVERRIDE_PATH = previous;
+    if (previous === undefined) delete process.env.HAPPYRO_GATEWAY_RESOURCE_OVERRIDE_DIRS;
+    else process.env.HAPPYRO_GATEWAY_RESOURCE_OVERRIDE_DIRS = previous;
     await fs.rm(root, {recursive: true});
   });
-  process.env.DATA_OVERRIDE_PATH = root;
+  process.env.HAPPYRO_GATEWAY_RESOURCE_OVERRIDE_DIRS = root;
   const relative = 'texture/유저인터페이스/item/DK_DRAGONIC_BREATH.bmp';
   const expected = Buffer.from('reviewed-icon-content');
   await fs.mkdir(path.dirname(path.join(root, relative)), {recursive: true});
@@ -29,17 +29,17 @@ test('serves Korean loose resources for the client CP949 byte-string paths', asy
 
 test('custom resources win over cached built-ins and update or revert without restarting', async t => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'happyro-custom-icons-'));
-  const oldCustom = process.env.CUSTOM_RESOURCE_PATH, oldOverrides = process.env.DATA_OVERRIDE_PATH;
+  const oldCustom = process.env.HAPPYRO_GATEWAY_CUSTOM_RESOURCE_DIR, oldOverrides = process.env.HAPPYRO_GATEWAY_RESOURCE_OVERRIDE_DIRS;
   t.after(async () => {
-    if (oldCustom === undefined) delete process.env.CUSTOM_RESOURCE_PATH; else process.env.CUSTOM_RESOURCE_PATH = oldCustom;
-    if (oldOverrides === undefined) delete process.env.DATA_OVERRIDE_PATH; else process.env.DATA_OVERRIDE_PATH = oldOverrides;
+    if (oldCustom === undefined) delete process.env.HAPPYRO_GATEWAY_CUSTOM_RESOURCE_DIR; else process.env.HAPPYRO_GATEWAY_CUSTOM_RESOURCE_DIR = oldCustom;
+    if (oldOverrides === undefined) delete process.env.HAPPYRO_GATEWAY_RESOURCE_OVERRIDE_DIRS; else process.env.HAPPYRO_GATEWAY_RESOURCE_OVERRIDE_DIRS = oldOverrides;
     await fs.rm(root, {recursive: true});
   });
   const builtin = path.join(root, 'builtin'), custom = path.join(root, 'custom');
   await fs.mkdir(builtin); await fs.mkdir(custom);
   await fs.writeFile(path.join(builtin, 'custom-priority.bmp'), 'builtin');
-  process.env.DATA_OVERRIDE_PATH = builtin;
-  process.env.CUSTOM_RESOURCE_PATH = custom;
+  process.env.HAPPYRO_GATEWAY_RESOURCE_OVERRIDE_DIRS = builtin;
+  process.env.HAPPYRO_GATEWAY_CUSTOM_RESOURCE_DIR = custom;
   const file = 'data/custom-priority.bmp';
   assert.equal((await Client.getFile(file)).toString(), 'builtin');
   await fs.writeFile(path.join(custom, 'custom-priority.bmp'), 'custom');

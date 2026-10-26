@@ -5,7 +5,7 @@ const path = require('node:path');
 const test = require('node:test');
 const { resolvePwaFaviconPath } = require('../src/utils/pwaFavicon');
 
-test('returns the PWA favicon when ROBROWSER_PATH is absolute', t => {
+test('returns the PWA favicon when HAPPYRO_GATEWAY_PWA_DIR is absolute', t => {
   const gatewayRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'happyro-gateway-root-'));
   const pwaRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'happyro-pwa-'));
   t.after(() => {

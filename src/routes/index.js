@@ -128,7 +128,7 @@ router.get('/*', async (req, res, next) => {
   // Browsers request /favicon.ico on the origin before parsing HTML <link rel="icon">.
   // Prefer the PWA portrait so the tab does not flash a different Gateway icon.
   if (filePath === 'favicon.ico') {
-    const pwaFavicon = resolvePwaFaviconPath(path.join(__dirname, '..', '..'), process.env.ROBROWSER_PATH);
+    const pwaFavicon = resolvePwaFaviconPath(path.join(__dirname, '..', '..'), process.env.HAPPYRO_GATEWAY_PWA_DIR);
     if (pwaFavicon) {
       res.type('image/x-icon');
       res.set('Cache-Control', 'no-store');

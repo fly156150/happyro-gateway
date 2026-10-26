@@ -4,7 +4,7 @@ HappyRO 的 Node.js 网关。一个进程提供 PWA 静态文件、客户端资�
 
 基于 [roBrowserLegacy-RemoteClient-JS](https://github.com/FranciscoWallison/roBrowserLegacy-RemoteClient-JS)。HappyRO 配置与运行方式以本仓库文档和根仓库编排为准。
 
-本机由根仓库启动，默认端口 `3338`；监听地址由 `HOST` 决定，仓库示例为 `127.0.0.1`。局域网访问需按实际部署配置监听地址或反向代理入口。
+本机由根仓库启动，默认端口 `3338`；监听地址由 `HAPPYRO_GATEWAY_LISTEN_HOST` 决定，仓库示例为 `127.0.0.1`。局域网访问需按实际部署配置监听地址或反向代理入口。
 
 ## 文档
 
@@ -33,3 +33,5 @@ make gateway-verify
 ## 保持登录
 
 HTTP／HTTPS 的 Cookie、临时凭据、代理和服务端依赖见[会话说明](docs/game-sessions.md)。
+
+上述本机 make 启停入口面向 Linux systemd；macOS 使用已配置的 launchd 服务，见根仓库[服务管理](../../docs/operations/services.md)。构建与重启是两个步骤，核对服务实际使用的产物路径后再验收。

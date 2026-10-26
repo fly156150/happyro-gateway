@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+日期变更见 [changelog/](changelog/)，功能和配置以 [当前文档](docs/README.md) 为准。以下保留早期功能记录，不重复计作新版本变更。
+
+## 早期功能记录
 
 - 新增游戏会话创建、轮换与撤销 API；HTTP 和 HTTPS 均支持保持登录，持久凭据使用 HttpOnly Cookie，HTTPS 另设 Secure，页面内会话不写 Cookie。
 - 使用系统随机源生成凭据和一次性票据，拒绝跨站请求并禁止响应缓存；配套服务端会话表与认证扩展，相关 Cookie、轮换、撤销及实际三端流程验证通过。

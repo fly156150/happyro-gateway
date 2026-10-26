@@ -2,7 +2,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 function readClientDefaultsSchema(env) {
-  const root = path.resolve(__dirname, env.ROBROWSER_PATH || '../../repos/happyro-client/dist/Web');
+  const root = path.resolve(__dirname, env.HAPPYRO_GATEWAY_PWA_DIR || '../../repos/happyro-client/dist/Web');
   return JSON.parse(fs.readFileSync(path.join(root, 'client-defaults.schema.json'), 'utf8'));
 }
 
@@ -44,7 +44,14 @@ function createClientDefaults(env, schema = readClientDefaultsSchema(env)) {
   }
   const ranges = defaults.autoCombat.ranges;
   if (ranges.activity < ranges.search) {
-    throw new Error('CLIENT_AUTO_COMBAT_ACTIVITY_RANGE must be at least CLIENT_AUTO_COMBAT_SEARCH_RANGE');
+    throw new Error('HAPPYRO_CLIENT_DEFAULT_AUTO_COMBAT_ACTIVITY_RANGE must be at least HAPPYRO_CLIENT_DEFAULT_AUTO_COMBAT_SEARCH_RANGE');
+  }
+  for (const stat of ['hp', 'sp']) {
+    const { trigger, target } = defaults.autoRecovery[stat];
+    if (target <= trigger) {
+      const prefix = `HAPPYRO_CLIENT_DEFAULT_AUTO_RECOVERY_${stat.toUpperCase()}`;
+      throw new Error(`${prefix}_TARGET_PERCENT must be greater than ${prefix}_TRIGGER_PERCENT`);
+    }
   }
   return defaults;
 }
