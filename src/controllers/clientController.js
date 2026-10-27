@@ -1,4 +1,5 @@
 const fs = require('fs');
+const { readValue } = require('../../environment');
 const path = require('path');
 const Grf = require('./grfController');
 const configs = require('../config/configs');
@@ -33,8 +34,8 @@ function decodeMojibake(str) {
 
 // File content cache (5000 files, 1024MB max)
 const fileCache = new LRUCache(
-  parseInt(process.env.CACHE_MAX_FILES) || 5000,
-  parseInt(process.env.CACHE_MAX_MEMORY_MB) || 1024
+  readValue(process.env, 'HAPPYRO_GATEWAY_CACHE_MAX_FILES'),
+  readValue(process.env, 'HAPPYRO_GATEWAY_CACHE_MAX_MEMORY_MB')
 );
 
 // GRF file index for O(1) lookups: filename → { grfIndex, originalPath }
@@ -200,7 +201,7 @@ const Client = {
    * Returns { data, etag } or null
    */
   customResourcesEnabled(filePath) {
-    return Boolean(process.env.CUSTOM_RESOURCE_PATH) && /^data[\/\\]/i.test(filePath);
+    return Boolean(process.env.HAPPYRO_GATEWAY_CUSTOM_RESOURCE_DIR) && /^data[\/\\]/i.test(filePath);
   },
 
   getFileCachedETag(filePath) {
@@ -212,7 +213,7 @@ const Client = {
   async getFile(filePath) {
     // Check user files before all built-in/local caches. No user bytes enter the LRU.
     if (this.customResourcesEnabled(filePath)) {
-      const root = resolveConfiguredRoot(GATEWAY_ROOT, process.env.CUSTOM_RESOURCE_PATH);
+      const root = resolveConfiguredRoot(GATEWAY_ROOT, process.env.HAPPYRO_GATEWAY_CUSTOM_RESOURCE_DIR);
       const relative = decodeMojibake(filePath).replace(/^data[\/\\]/i, '');
       const candidate = resolveContainedPath(root, relative);
       if (candidate && fs.lstatSync(candidate, {throwIfNoEntry: false})) {
@@ -246,10 +247,10 @@ const Client = {
       }
     }
 
-    // Check DATA_OVERRIDE_PATH (external data dir with loose files not in GRF)
-    if (process.env.DATA_OVERRIDE_PATH) {
+    // Check HAPPYRO_GATEWAY_RESOURCE_OVERRIDE_DIRS (external data dir with loose files not in GRF)
+    if (process.env.HAPPYRO_GATEWAY_RESOURCE_OVERRIDE_DIRS) {
       const relativePath = decodeMojibake(filePath).replace(/^data[\/\\]/, '');
-      for (const overrideRoot of process.env.DATA_OVERRIDE_PATH.split(path.delimiter).filter(Boolean)) {
+      for (const overrideRoot of process.env.HAPPYRO_GATEWAY_RESOURCE_OVERRIDE_DIRS.split(path.delimiter).filter(Boolean)) {
         const overrideBase = resolveConfiguredRoot(GATEWAY_ROOT, overrideRoot);
         if (!overrideBase) continue;
         const overridePath = resolveContainedPath(overrideBase, relativePath);

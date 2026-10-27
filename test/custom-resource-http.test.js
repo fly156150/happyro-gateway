@@ -11,8 +11,8 @@ const router = require('../src/routes/index');
 
 test('custom resource HTTP responses bypass stale ETags and report invalid overrides', async t => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'happyro-custom-http-'));
-  const previous = process.env.CUSTOM_RESOURCE_PATH;
-  process.env.CUSTOM_RESOURCE_PATH = root;
+  const previous = process.env.HAPPYRO_GATEWAY_CUSTOM_RESOURCE_DIR;
+  process.env.HAPPYRO_GATEWAY_CUSTOM_RESOURCE_DIR = root;
   const app = express(); app.use(router);
   app.use((error, req, res, next) => res.status(500).send('Invalid custom resource'));
   const server = await new Promise(resolve => {
@@ -20,7 +20,7 @@ test('custom resource HTTP responses bypass stale ETags and report invalid overr
   });
   t.after(async () => {
     server.closeAllConnections(); await new Promise(resolve => server.close(resolve));
-    if (previous === undefined) delete process.env.CUSTOM_RESOURCE_PATH; else process.env.CUSTOM_RESOURCE_PATH = previous;
+    if (previous === undefined) delete process.env.HAPPYRO_GATEWAY_CUSTOM_RESOURCE_DIR; else process.env.HAPPYRO_GATEWAY_CUSTOM_RESOURCE_DIR = previous;
     await fs.rm(root, {recursive:true});
   });
   const url = `http://127.0.0.1:${server.address().port}/data/http-custom.bmp`;

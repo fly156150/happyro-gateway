@@ -4,7 +4,7 @@ HappyRO 的 Node.js 网关。一个进程提供 PWA 静态文件、客户端资�
 
 基于 [roBrowserLegacy-RemoteClient-JS](https://github.com/FranciscoWallison/roBrowserLegacy-RemoteClient-JS)。HappyRO 配置与运行方式以本仓库文档和根仓库编排为准。
 
-本机由根仓库启动，默认端口 `3338`；监听地址由 `HOST` 决定，仓库示例为 `127.0.0.1`。局域网访问需按实际部署配置监听地址或反向代理入口。
+本机由根仓库启动，默认端口 `3338`；监听地址由 `HAPPYRO_GATEWAY_LISTEN_HOST` 决定，仓库示例为 `127.0.0.1`。局域网访问需按实际部署配置监听地址或反向代理入口。
 
 ## 文档
 

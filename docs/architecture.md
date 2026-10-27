@@ -5,7 +5,7 @@
 ```text
 浏览器 :3338
   ├── /applications/pwa/*     Client dist/Web
-  ├── /data/*                 CUSTOM_RESOURCE_PATH → 本地文件 → DATA_OVERRIDE_PATH → GRF
+  ├── /data/*                 HAPPYRO_GATEWAY_CUSTOM_RESOURCE_DIR → 本地文件 → HAPPYRO_GATEWAY_RESOURCE_OVERRIDE_DIRS → GRF
   ├── /ws/<host:port>         WebSocket → rAthena TCP
   ├── /api/game-session/*     → 配套服务端会话 API
   ├── /api/client-diagnostics  → 可选本地诊断日志

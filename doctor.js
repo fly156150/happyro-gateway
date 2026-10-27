@@ -56,8 +56,8 @@ async function runDoctor() {
       console.log('2️⃣  ENVIRONMENT VARIABLES:');
       console.log('   Create a .env file at the project root:');
       console.log('   ');
-      console.log('   PORT=3338');
-      console.log('   CLIENT_PUBLIC_URL=http://127.0.0.1:8000');
+      console.log('   HAPPYRO_GATEWAY_LISTEN_PORT=3338');
+      console.log('   HAPPYRO_GAME_PUBLIC_URL=http://127.0.0.1:8000');
       console.log('   NODE_ENV=development');
       console.log('');
     }

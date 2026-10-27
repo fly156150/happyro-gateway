@@ -1,4 +1,5 @@
 require('dotenv').config();
+const environment = require('./environment').readEnvironment();
 const { createRuntimeConfig, createRuntimeConfigHandler } = require('./runtime-config');
 const runtimeConfig = createRuntimeConfig();
 
@@ -15,7 +16,7 @@ const StartupValidator = require('./src/validators/startupValidator');
 
 const app = express();
 const server = http.createServer(app);
-const port = process.env.PORT || 3338;
+const port = environment.HAPPYRO_GATEWAY_LISTEN_PORT;
 const routes = require('./src/routes');
 const debugMiddleware = require('./src/middlewares/debugMiddleware');
 const createRawImportMiddleware = require('./src/middlewares/rawImportMiddleware');
@@ -23,16 +24,16 @@ const { createHttpProxyMiddleware } = require('./src/middlewares/httpProxyMiddle
 const { createGameSessionRouter } = require('./src/routes/gameSession');
 const { createClientDiagnosticsRouter } = require('./src/routes/clientDiagnostics');
 
-const CLIENT_PUBLIC_URL = process.env.CLIENT_PUBLIC_URL || 'http://localhost:8000';
-const ENABLE_WSPROXY = process.env.ENABLE_WSPROXY === 'true';
-const ENABLE_STATIC_SERVE = process.env.ENABLE_STATIC_SERVE === 'true';
-const ESRGAN_ENABLED = process.env.ESRGAN_ENABLED === 'true';
-const ESRGAN_CACHE_DIR = process.env.ESRGAN_CACHE_DIR || './upscaled_cache';
-const ROBROWSER_PATH = process.env.ROBROWSER_PATH || '../../repos/happyro-client/dist/Web';
-const ROBROWSER_PUBLIC_PATH = process.env.ROBROWSER_PUBLIC_PATH || '/';
-const RATHENA_WEB_API_URL = process.env.RATHENA_WEB_API_URL || '';
-const HAPPYRO_API_URL = process.env.HAPPYRO_API_URL || 'http://127.0.0.1:18081';
-const HTTP_PROXY_TIMEOUT_MS = Number.parseInt(process.env.HTTP_PROXY_TIMEOUT_MS || '5000', 10);
+const HAPPYRO_GAME_PUBLIC_URL = environment.HAPPYRO_GAME_PUBLIC_URL;
+const HAPPYRO_GATEWAY_WS_PROXY_ENABLED = environment.HAPPYRO_GATEWAY_WS_PROXY_ENABLED;
+const HAPPYRO_GATEWAY_STATIC_SERVE_ENABLED = environment.HAPPYRO_GATEWAY_STATIC_SERVE_ENABLED;
+const HAPPYRO_GATEWAY_ESRGAN_ENABLED = environment.HAPPYRO_GATEWAY_ESRGAN_ENABLED;
+const HAPPYRO_GATEWAY_ESRGAN_CACHE_DIR = process.env.HAPPYRO_GATEWAY_ESRGAN_CACHE_DIR || './upscaled_cache';
+const HAPPYRO_GATEWAY_PWA_DIR = process.env.HAPPYRO_GATEWAY_PWA_DIR || '../../repos/happyro-client/dist/Web';
+const HAPPYRO_GATEWAY_PWA_PUBLIC_PATH = process.env.HAPPYRO_GATEWAY_PWA_PUBLIC_PATH || '/';
+const HAPPYRO_GATEWAY_GAME_WEB_UPSTREAM_URL = environment.HAPPYRO_GATEWAY_GAME_WEB_UPSTREAM_URL;
+const HAPPYRO_GATEWAY_API_UPSTREAM_URL = environment.HAPPYRO_GATEWAY_API_UPSTREAM_URL;
+const HAPPYRO_GATEWAY_HTTP_PROXY_TIMEOUT_MS = environment.HAPPYRO_GATEWAY_HTTP_PROXY_TIMEOUT_MS;
 const IS_PROD = process.env.NODE_ENV === 'production';
 
 // Global variable to store validation status
@@ -71,7 +72,7 @@ async function startServer() {
   // CORS setup - allow all localhost variations
   const corsOptions = {
     origin: [
-      CLIENT_PUBLIC_URL,
+      HAPPYRO_GAME_PUBLIC_URL,
       'http://localhost:8000',
       'http://127.0.0.1:8000',
       'http://localhost:8080',
@@ -100,21 +101,21 @@ async function startServer() {
   }));
 
   app.use('/api/adventure-tools', createHttpProxyMiddleware({
-    targetUrl: HAPPYRO_API_URL,
+    targetUrl: HAPPYRO_GATEWAY_API_UPSTREAM_URL,
     path: request => `/api/adventure-tools${request.url}`,
-    timeoutMs: HTTP_PROXY_TIMEOUT_MS,
+    timeoutMs: HAPPYRO_GATEWAY_HTTP_PROXY_TIMEOUT_MS,
     logger,
     serviceName: 'Admin adventure tools',
     unavailableBody: { message: 'Adventure tools service unavailable' },
   }));
 
-  app.use('/api/game-session', createGameSessionRouter({ targetUrl: RATHENA_WEB_API_URL }));
+  app.use('/api/game-session', createGameSessionRouter({ targetUrl: HAPPYRO_GATEWAY_GAME_WEB_UPSTREAM_URL }));
 
-  if (RATHENA_WEB_API_URL) {
+  if (HAPPYRO_GATEWAY_GAME_WEB_UPSTREAM_URL) {
     const proxyPrefixes = ['/charconfig', '/emblem', '/MerchantStore', '/party', '/userconfig', '/get'];
     const proxy = createHttpProxyMiddleware({
-      targetUrl: RATHENA_WEB_API_URL,
-      timeoutMs: HTTP_PROXY_TIMEOUT_MS,
+      targetUrl: HAPPYRO_GATEWAY_GAME_WEB_UPSTREAM_URL,
+      timeoutMs: HAPPYRO_GATEWAY_HTTP_PROXY_TIMEOUT_MS,
       logger,
       serviceName: 'rAthena Web API',
       unavailableBody: { error: 'rAthena Web API unavailable' },
@@ -132,10 +133,10 @@ async function startServer() {
   }
 
   app.use('/api/client-diagnostics', await createClientDiagnosticsRouter({
-    directory: process.env.CLIENT_DIAGNOSTICS_DIR,
+    directory: process.env.HAPPYRO_GATEWAY_CLIENT_DIAGNOSTICS_DIR,
   }));
-  if (process.env.CLIENT_DIAGNOSTICS_DIR) {
-    logger.info(`Client diagnostics: ${path.resolve(process.env.CLIENT_DIAGNOSTICS_DIR)}`);
+  if (process.env.HAPPYRO_GATEWAY_CLIENT_DIAGNOSTICS_DIR) {
+    logger.info(`Client diagnostics: ${path.resolve(process.env.HAPPYRO_GATEWAY_CLIENT_DIAGNOSTICS_DIR)}`);
   }
 
   app.use(express.json());
@@ -149,9 +150,9 @@ async function startServer() {
   // ESRGAN upscaling middleware - serves upscaled assets from disk cache
   // Plugin: @chicowall/robrowser-esrgan (external package)
   let esrganInstance = null;
-  if (ESRGAN_ENABLED) {
+  if (HAPPYRO_GATEWAY_ESRGAN_ENABLED) {
     const createEsrganMiddleware = require('@chicowall/robrowser-esrgan');
-    const cachePath = path.resolve(__dirname, ESRGAN_CACHE_DIR);
+    const cachePath = path.resolve(__dirname, HAPPYRO_GATEWAY_ESRGAN_CACHE_DIR);
     esrganInstance = await createEsrganMiddleware({ cacheDir: cachePath, logger });
     app.use(esrganInstance.middleware);
   }
@@ -190,41 +191,41 @@ async function startServer() {
   });
 
   // This route takes precedence over the placeholder shipped with the static PWA.
-  app.get(`${ROBROWSER_PUBLIC_PATH.replace(/\/$/, '')}/Config.runtime.js`, createRuntimeConfigHandler(runtimeConfig));
+  app.get(`${HAPPYRO_GATEWAY_PWA_PUBLIC_PATH.replace(/\/$/, '')}/Config.runtime.js`, createRuntimeConfigHandler(runtimeConfig));
 
   // Serve roBrowserLegacy static files (replaces live-server)
-  if (ENABLE_STATIC_SERVE) {
-    const roBrowserAbsPath = path.resolve(__dirname, ROBROWSER_PATH);
+  if (HAPPYRO_GATEWAY_STATIC_SERVE_ENABLED) {
+    const roBrowserAbsPath = path.resolve(__dirname, HAPPYRO_GATEWAY_PWA_DIR);
     logger.debug(`Static serve enabled: ${roBrowserAbsPath}`);
 
     // Handle Vite-style ?raw imports (must come before express.static)
-    app.use(ROBROWSER_PUBLIC_PATH, createRawImportMiddleware(roBrowserAbsPath));
+    app.use(HAPPYRO_GATEWAY_PWA_PUBLIC_PATH, createRawImportMiddleware(roBrowserAbsPath));
 
-    app.use(ROBROWSER_PUBLIC_PATH, express.static(roBrowserAbsPath));
+    app.use(HAPPYRO_GATEWAY_PWA_PUBLIC_PATH, express.static(roBrowserAbsPath));
   }
 
   // API routes (GRF file serving, search, etc.)
   app.use('/', routes);
 
   // Embedded WebSocket proxy (replaces standalone wsproxy)
-  if (ENABLE_WSPROXY) {
+  if (HAPPYRO_GATEWAY_WS_PROXY_ENABLED) {
     const WebSocket = require('ws');
     const wss = new WebSocket.Server({ noServer: true, maxPayload: 64 * 1024 });
 
     // Allowed rAthena targets (security: only explicitly listed game servers).
-    // Override via WS_ALLOWED_TARGETS (comma-separated host:port) for deployments
+    // Override via HAPPYRO_GATEWAY_WS_ALLOWED_TARGETS (comma-separated host:port) for deployments
     // that cannot use host networking (Kubernetes, Docker Desktop on macOS/Windows,
     // remote rAthena hosts).  The localhost-only default is preserved when the
     // variable is absent or empty.
-    const ALLOWED_TARGETS = process.env.WS_ALLOWED_TARGETS
-      ? process.env.WS_ALLOWED_TARGETS.split(',').map(s => s.trim())
+    const ALLOWED_TARGETS = process.env.HAPPYRO_GATEWAY_WS_ALLOWED_TARGETS
+      ? process.env.HAPPYRO_GATEWAY_WS_ALLOWED_TARGETS.split(',').map(s => s.trim())
       : [
           '127.0.0.1:6900',  // Login
           '127.0.0.1:6121',  // Char
           '127.0.0.1:5121',  // Map
         ];
     const TARGET_REDIRECTS = Object.fromEntries(
-      (process.env.WS_TARGET_REDIRECTS || '')
+      (process.env.HAPPYRO_GATEWAY_WS_TARGET_REDIRECTS || '')
         .split(',')
         .map(entry => entry.trim().split('='))
         .filter(([source, destination]) => source && destination)
@@ -298,14 +299,14 @@ async function startServer() {
     logger.info(`WebSocket proxy enabled on /ws/ (allowed: ${ALLOWED_TARGETS.join(', ')})`);
   }
 
-  server.listen(port, process.env.HOST, async () => {
+  server.listen(port, process.env.HAPPYRO_GATEWAY_LISTEN_HOST, async () => {
     logger.info(`Server ready on http://localhost:${port}` +
-      (ENABLE_STATIC_SERVE ? ` | Game: http://localhost:${port}${ROBROWSER_PUBLIC_PATH}/index.html` : '') +
-      (ENABLE_WSPROXY ? ` | WS Proxy: /ws/` : ''));
+      (HAPPYRO_GATEWAY_STATIC_SERVE_ENABLED ? ` | Game: http://localhost:${port}${HAPPYRO_GATEWAY_PWA_PUBLIC_PATH}/index.html` : '') +
+      (HAPPYRO_GATEWAY_WS_PROXY_ENABLED ? ` | WS Proxy: /ws/` : ''));
 
     // Cache warm-up (runs after server is ready, non-blocking)
-    if (process.env.CACHE_WARM_UP === 'true') {
-      const warmLimit = parseInt(process.env.CACHE_WARM_UP_LIMIT) || 500;
+    if (environment.HAPPYRO_GATEWAY_CACHE_WARMUP_ENABLED) {
+      const warmLimit = environment.HAPPYRO_GATEWAY_CACHE_WARMUP_MAX_FILES;
       logger.debug(`Warming cache (up to ${warmLimit} files)...`);
       const Client = require('./src/controllers/clientController');
       Client.warmCache([], warmLimit).catch(err => {

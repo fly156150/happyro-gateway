@@ -1,4 +1,5 @@
 const fs = require("fs");
+const { readValue, readEnvironment } = require("../../environment");
 const path = require("path");
 const { execSync } = require("child_process");
 const zlib = require("zlib");
@@ -400,9 +401,7 @@ class StartupValidator {
   }
 
   _analyzeGrfPathEncoding(fd, headerInfo, fileSize) {
-    const scanLimitEnv = process.env.GRF_PATH_SCAN_LIMIT;
-    const scanLimit =
-      scanLimitEnv && /^\d+$/.test(scanLimitEnv) ? parseInt(scanLimitEnv, 10) : 0; // 0 = full
+    const scanLimit = readValue(process.env, 'HAPPYRO_GATEWAY_GRF_SCAN_MAX_FILES'); // 0 = full
 
     const fileTablePos = headerInfo.tableOffset + 46; // correct per spec
     const table = this._inflateFileTable(fd, fileTablePos);
@@ -807,43 +806,18 @@ class StartupValidator {
   }
 
   validateEnvironment() {
-    const envVars = {
-      PORT: { value: process.env.PORT, default: "3338", required: false },
-      CLIENT_PUBLIC_URL: { value: process.env.CLIENT_PUBLIC_URL, default: null, required: true },
-      NODE_ENV: { value: process.env.NODE_ENV, default: "development", required: false },
-    };
-
     let hasErrors = false;
     const results = {};
-
-    if (!envVars.PORT.value) {
-      this.addWarning(`PORT not set, using default: ${envVars.PORT.default}`);
-      results.PORT = { defined: false, usingDefault: true, value: envVars.PORT.default };
-    } else {
-      this.addInfo(`PORT: ${envVars.PORT.value}`);
-      results.PORT = { defined: true, value: envVars.PORT.value };
-    }
-
-    if (!envVars.CLIENT_PUBLIC_URL.value) {
-      this.addError("CLIENT_PUBLIC_URL not set! Configure it in the .env file");
-      hasErrors = true;
-      results.CLIENT_PUBLIC_URL = { defined: false, error: "Variable not set" };
-    } else {
-      try {
-        new URL(envVars.CLIENT_PUBLIC_URL.value);
-        this.addInfo(`CLIENT_PUBLIC_URL: ${envVars.CLIENT_PUBLIC_URL.value}`);
-        results.CLIENT_PUBLIC_URL = { defined: true, value: envVars.CLIENT_PUBLIC_URL.value };
-      } catch {
-        this.addError(`Invalid CLIENT_PUBLIC_URL: ${envVars.CLIENT_PUBLIC_URL.value}`);
-        hasErrors = true;
-        results.CLIENT_PUBLIC_URL = {
-          defined: true,
-          invalid: true,
-          value: envVars.CLIENT_PUBLIC_URL.value,
-        };
+    try {
+      const parsed = readEnvironment();
+      for (const [name, value] of Object.entries(parsed)) {
+        results[name] = { defined: Boolean(process.env[name]), value };
       }
+    } catch (error) {
+      this.addError(error.message);
+      hasErrors = true;
     }
-
+    const envVars = { NODE_ENV: { value: process.env.NODE_ENV, default: 'development' } };
     const nodeEnv = envVars.NODE_ENV.value || envVars.NODE_ENV.default;
     results.NODE_ENV = { defined: !!envVars.NODE_ENV.value, value: nodeEnv };
 
@@ -864,9 +838,9 @@ class StartupValidator {
       this.addWarning(".env file not found! Copy .env.example to .env and configure it");
     }
 
-    // Validate WS_ALLOWED_TARGETS when the proxy is enabled
-    const wsProxyEnabled = process.env.ENABLE_WSPROXY === 'true';
-    const wsAllowedRaw = process.env.WS_ALLOWED_TARGETS || '';
+    // Validate HAPPYRO_GATEWAY_WS_ALLOWED_TARGETS when the proxy is enabled
+    const wsProxyEnabled = process.env.HAPPYRO_GATEWAY_WS_PROXY_ENABLED === 'true';
+    const wsAllowedRaw = process.env.HAPPYRO_GATEWAY_WS_ALLOWED_TARGETS || '';
     if (wsProxyEnabled) {
       if (wsAllowedRaw) {
         const entries = wsAllowedRaw.split(',').map(s => s.trim()).filter(Boolean);
@@ -879,17 +853,17 @@ class StartupValidator {
         });
         if (invalid.length > 0) {
           this.addError(
-            `WS_ALLOWED_TARGETS contains invalid entries: ${invalid.join(', ')}\n` +
+            `HAPPYRO_GATEWAY_WS_ALLOWED_TARGETS contains invalid entries: ${invalid.join(', ')}\n` +
             `  Each entry must be "host:port" where port is 1-65535.`
           );
           hasErrors = true;
         } else {
-          this.addInfo(`WS_ALLOWED_TARGETS: ${entries.join(', ')}`);
+          this.addInfo(`HAPPYRO_GATEWAY_WS_ALLOWED_TARGETS: ${entries.join(', ')}`);
         }
-        results.WS_ALLOWED_TARGETS = { defined: true, entries };
+        results.HAPPYRO_GATEWAY_WS_ALLOWED_TARGETS = { defined: true, entries };
       } else {
-        this.addInfo('WS_ALLOWED_TARGETS: not set, using localhost defaults (127.0.0.1:6900/6121/5121)');
-        results.WS_ALLOWED_TARGETS = { defined: false, usingDefaults: true };
+        this.addInfo('HAPPYRO_GATEWAY_WS_ALLOWED_TARGETS: not set, using localhost defaults (127.0.0.1:6900/6121/5121)');
+        results.HAPPYRO_GATEWAY_WS_ALLOWED_TARGETS = { defined: false, usingDefaults: true };
       }
     }
 
